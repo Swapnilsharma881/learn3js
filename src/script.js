@@ -9,15 +9,19 @@ const pane = new Pane();
 
 // Initialize the scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#00EFE7"); // ✅ Corrected Hex Color
+scene.background = new THREE.Color("#87CEEB"); // 
+scene.fog = new THREE.Fog(0xaaaaaa, 5, 15); // Light gray fog starts at 5 units, disappears at 15
+
 
 // Initialize the geometry
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 const torusKnotGeometry = new THREE.TorusKnotGeometry(0.5, 0.15, 100, 16);
 const planeGeometry = new THREE.PlaneGeometry(1, 1);
+const icosahedronGeometry = new THREE.IcosahedronGeometry(3, 0);
+
 
 // Initialize the material
-const material = new THREE.MeshBasicMaterial({ color: "red" }); // ✅ Set color in material
+const material = new THREE.MeshPhongMaterial({ color: "red" }); // ✅ Set color in material
 
 // Initialize the meshes
 const cube = new THREE.Mesh(geometry, material);
@@ -26,6 +30,7 @@ knot.position.x = 1.5;
 
 const plane = new THREE.Mesh(planeGeometry, material);
 plane.position.x = -1.5;
+plane.material.side = THREE.DoubleSide;
 
 // Add the meshes to the scene
 scene.add(cube, knot, plane);
@@ -66,6 +71,7 @@ window.addEventListener("resize", () => {
 
 // Render the scene
 const renderloop = () => {
+
   controls.update();
   renderer.render(scene, camera);
   window.requestAnimationFrame(renderloop);
