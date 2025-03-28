@@ -5,6 +5,16 @@ body {
 
 #canvas {
   display: absolute;
+  z-index: 0;
   height: 100%;
   width: 100%;
+}
+
+#button {
+  z-index: 20;
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  height: 50px;
+  width: 100px;
 }
