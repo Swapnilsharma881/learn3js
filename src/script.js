@@ -1,115 +1,193 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { cameraNormalMatrix, texture } from "three/tsl";
+import { min } from "three/tsl";
 import { Pane } from "tweakpane";
-const canvas = document.querySelector("canvas")
+
+const canvas = document.querySelector("canvas");
 
 // Initialize the pane
 const pane = new Pane();
 
 // Scene
 const scene = new THREE.Scene();
-// scene.background = new THREE.Color("#000000"); // 
-const axesHelper = new THREE.AxesHelper( 4 );
-scene.add( axesHelper );
+const axesHelper = new THREE.AxesHelper(4);
+scene.add(axesHelper);
+
+// Camera setup
+const camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+camera.position.x = -5;
+
 
 // Texture Loader
 const textureLoader = new THREE.TextureLoader();
+const textures = {};
 
-// Camera
-const camera = new THREE.PerspectiveCamera(
-  150,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  200
-);
-camera.position.z = 5;
-camera.position.y = 10;
+const loadTextures = () => {
+            const folders = [
+              "badlands-boulders-bl",
+              "space-cruiser-panels2-bl",
+              "whispy-grass-meadow-bl",
+            ];
 
+            const texturePrefixes = {
+              "badlands-boulders-bl": "badlands-boulders",
+              "space-cruiser-panels2-bl": "space-cruiser-panels2",
+              "whispy-grass-meadow-bl": "wispy-grass-meadow",
+            };
 
-// Light
-const light = new THREE.AmbientLight(0xffffff, 10);
-scene.add(light);
+            const textureTypes = ["albedo", "height", "metallic", "normal", "roughness", "ao"];
 
-const pointLight = new THREE.PointLight(0xffffff, 2);
-pointLight.position.set(5, 0, 0);
-scene.add(pointLight);
-const pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
-scene.add(pointLightHelper);
+            folders.forEach((folder) => {
+              const prefix = texturePrefixes[folder];
+              textures[folder] = {};
 
-// Geometry
+              textureTypes.forEach((type) => {
+                const path = `/textures/${folder}/${prefix}_${type}.png`;
+                textures[folder][type] = textureLoader.load(path);
+              });
+            });
+  };
+loadTextures();
+
+function initializeLight() {
+            // ✅ Ambient Light with Tweakpane Controls
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+          scene.add(ambientLight);
+
+          // ✅ Point Light with Tweakpane Controls
+          const pointLight = new THREE.PointLight(0xffffff, 0.1);
+          pointLight.position.set(0, 0, 5);
+          scene.add(pointLight);
+
+          // Light GUI Controls
+          const lightFolder = pane.addFolder({ title: "Lights" });
+
+          lightFolder.addBinding(ambientLight, "intensity", {
+            min: 0,
+            max: 2,
+            step: 0.01,
+            label: "Ambient Intensity",
+          });
+
+          lightFolder.addBinding(pointLight, "intensity", {
+            min: 0,
+            max: 2,
+            step: 0.1,
+            label: "Point Intensity",
+          });
+
+          lightFolder.addBinding(pointLight.position, "x", {
+            min: -10,
+            max: 10,
+            step: 0.1,
+            label: "Point Light X",
+          });
+
+          lightFolder.addBinding(pointLight.position, "y", {
+            min: -10,
+            max: 10,
+            step: 0.1,
+            label: "Point Light Y",
+          });
+
+          lightFolder.addBinding(pointLight.position, "z", {
+            min: -10,
+            max: 10,
+            step: 0.1,
+            label: "Point Light Z",
+          });
+
+  };
+initializeLight()
+// Geometries
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
-const torusKnotGeometry = new THREE.TorusKnotGeometry(0.5, 0.15, 100, 16);
 const planeGeometry = new THREE.PlaneGeometry(100, 100);
-const sphereGeometry = new THREE.SphereGeometry(.5,32,32);
-const cylinderGeometry = new THREE.CylinderGeometry(0.5,0.5,1,32);
+const sphereGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+const cylinderGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
 
-// Material
-const basicMaterial = new THREE.MeshBasicMaterial({  }); // ✅ Set color in material
-const standardMaterial = new THREE.MeshStandardMaterial({})
-const physicalMaterial = new THREE.MeshPhysicalMaterial({})
-const phongMaterial = new THREE.MeshPhongMaterial({  }); // ✅ Set color in material
-const lambertMatterial = new THREE.MeshLambertMaterial({  }); // ✅ Set color in material
 
-// Texture
-const testexture = textureLoader.load("/textures/space-cruiser-panels2-bl/space-cruiser-panels2_albedo.png");
-testexture.repeat.set(2,2)
+// Materials
+const spaceMatarial = new THREE.MeshStandardMaterial({}); 
+const grassMatarial = new THREE.MeshStandardMaterial({}); 
+const badlandsMatarial = new THREE.MeshStandardMaterial({}); 
 
-testexture.wrapS = THREE.MirroredRepeatWrapping
-testexture.wrapT = THREE.MirroredRepeatWrapping
 
-testexture.wrapS = THREE.RepeatWrapping
-testexture.wrapT = THREE.RepeatWrapping
+console.log(textures)
 
-basicMaterial.map = testexture
+
+
 
 // Meshes
-const geometries = [boxGeometry,planeGeometry,cylinderGeometry,torusKnotGeometry,sphereGeometry]
-const materials = [basicMaterial]
-const meshes  = geometries.map((geometry, index) => {
-  const mesh = new THREE.Mesh(geometry,materials[0]);
-  mesh.position.set(
-    0,0,0
-  );
-  return mesh
+const geometries = [sphereGeometry, sphereGeometry, sphereGeometry];
+const materials = [spaceMatarial,grassMatarial,badlandsMatarial];
+const meshes = geometries.map((geometry,index) => new THREE.Mesh(geometry, materials[index]));
+
+// Adding Meshes
+const [space, grass, badlands] = meshes;
+
+//space material
+  const spacePane = pane.addFolder({
+    title : 'space',
+    expanded : true
+  })
+  space.material.map = textures["space-cruiser-panels2-bl"].albedo;
+  space.material.metalnessMap = textures["space-cruiser-panels2-bl"].metallic;
+  space.material.roughnessMap = textures["space-cruiser-panels2-bl"].roughness;
+  space.material.normalMapMap = textures["space-cruiser-panels2-bl"].normal;
+  space.material.displacementMap = textures["space-cruiser-panels2-bl"].height;
+  space.material.aoMap = textures["space-cruiser-panels2-bl"].ao;
+  space.material.needsUpdate = true;
+  
+  spacePane.addBinding(space.material,"metalness" , {min : 0,max :1,step:0.01})
+  spacePane.addBinding(space.material,"roughness" , {min : 0,max :1,step:0.01})
+  spacePane.addBinding(space.material,"displacementScale" , {min : 0,max :1,step:0.01})
+  spacePane.addBinding(space.material,"aoMapIntensity" , {min : 0,max :1,step:0.01})
+
+
+
+
+// grass material
+const grassPane = pane.addFolder({
+  title : 'grass',
+  expanded : true
 })
+  grass.material.map = textures["whispy-grass-meadow-bl"].albedo;
+  grass.material.metalnessMap = textures["whispy-grass-meadow-bl"].metallic;
+  grass.material.roughnessMap = textures["whispy-grass-meadow-bl"].roughness;
+  grass.material.normalMapMap = textures["whispy-grass-meadow-bl"].normal;
+  grass.material.displacementMap = textures["whispy-grass-meadow-bl"].height;
+  grass.material.aoMap = textures["whispy-grass-meadow-bl"].ao;
+  grass.material.needsUpdate = true;
+
+  grassPane.addBinding(grass.material,"metalness" , {min : 0,max :1,step:0.01})
+  grassPane.addBinding(grass.material,"roughness" , {min : 0,max :1,step:0.01})
+  grassPane.addBinding(grass.material,"displacementScale" , {min : 0,max :1,step:0.01})
+  grassPane.addBinding(grass.material,"aoMapIntensity" , {min : 0,max :1,step:0.01})
+//badlands material
+const badlandsPane = pane.addFolder({
+  title : 'badlands',
+  expanded : true
+})
+badlands.material.map = textures["badlands-boulders-bl"].albedo;
+  badlands.material.metalnessMap = textures["badlands-boulders-bl"].metallic;
+  badlands.material.roughnessMap = textures["badlands-boulders-bl"].roughness;
+  badlands.material.normalMapMap = textures["badlands-boulders-bl"].normal;
+  badlands.material.displacementMap = textures["badlands-boulders-bl"].height;
+  badlands.material.aoMap = textures["badlands-boulders-bl"].ao;
+  badlands.material.needsUpdate = true;
+
+  badlandsPane.addBinding(badlands.material,"metalness" , {min : 0,max :1,step:0.01})
+  badlandsPane.addBinding(badlands.material,"roughness" , {min : 0,max :1,step:0.01})
+  badlandsPane.addBinding(badlands.material,"displacementScale" , {min : 0,max :1,step:0.01})
+  badlandsPane.addBinding(badlands.material,"aoMapIntensity" , {min : 0,max :1,step:0.01})
 
 
-//Change Mesh Props
-const cube = meshes[0]
-const plane = meshes[1]
-const cylinder = meshes[2]
-const torus = meshes[3]
-const sphere = meshes[4]
-
-// plane.position.x = 1.5;
-cylinder.position.y = 1.5;
-torus.position.y = -1.5;
-sphere.position.x = -1.5;
-// plane.rotation.x = Math.PI
-
-//Adding Meshes
-const group = new THREE.Group()
-group.add(plane)
-
-scene.add(group)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+const group = new THREE.Group();
+group.add(space,grass,badlands);
+space.position.setX(-1.5)
+badlands.position.setX(1.5)
+scene.add(group);
 
 
 
@@ -130,26 +208,26 @@ scene.add(group)
 
 
 // Initialize the renderer
-const renderer = new THREE.WebGLRenderer({ antialias: true, canvas : canvas });
+const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvas });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// Control logic
-let controls = new OrbitControls(camera, renderer.domElement);
+// Orbit Controls
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 function resetControls() {
-  controls.reset(); 
+  controls.reset();
 }
 const resetButton = document.getElementById("resetButton");
 resetButton.addEventListener("click", resetControls);
 
-
-//render logic
+// Render loop
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
 const renderloop = () => {
   controls.update();
   renderer.render(scene, camera);
